@@ -21,18 +21,16 @@ namespace TaskCancellation
                     cancellation.Cancel();
                 }, CancellationToken.None);
 
+                // "Simulates" some other load on Thread Pool while this test
+                // is running, like other tests executed in sibling AppDomains:
+                Task.Run(() => Thread.Sleep(millisecondsTimeout: 123));
+
                 // Main work action:
                 var actionTask = executor.Do(() =>
                 {
                     throw new InvalidOperationException(
                         "This action should be cancelled!");
                 }, cancellation.Token);
-
-                // Let's wait until this `Task` starts, so it will got opportunity
-                // to cancel itself, and expected later exception will not come
-                // from just starting that action by `Task.Run` with token:
-                while (actionTask.Status < TaskStatus.Running)
-                    Thread.Sleep(millisecondsTimeout: 1);
 
                 // Let's unblock slot in Executor for the 'main work action'
                 // by finalizing the 'system-state setup action' which will

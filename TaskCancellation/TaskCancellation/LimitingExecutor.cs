@@ -16,7 +16,8 @@ namespace TaskCancellation
                 _semaphore.WaitOne();
                 try
                 {
-                    token.ThrowIfCancellationRequested();
+                    // Here is a bug, we forgot to check cancellation:
+                    ////token.ThrowIfCancellationRequested();
                     work();
                 }
                 finally
