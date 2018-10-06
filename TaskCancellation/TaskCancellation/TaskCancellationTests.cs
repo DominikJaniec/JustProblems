@@ -19,6 +19,11 @@ namespace TaskCancellation
                 {
                     setupEvent.WaitOne();
                     cancellation.Cancel();
+
+                    // The "easiest solution" - just wait a little bit.
+                    // However, this test still could be unstable,
+                    // and often is unnecessary long to execute.
+                    Thread.Sleep(millisecondsTimeout: 3333);
                 }, CancellationToken.None);
 
                 // Main work action:
