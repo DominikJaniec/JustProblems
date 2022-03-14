@@ -15,15 +15,28 @@ namespace JustProblems.SystemWideBarrier
 
     public static class Worker
     {
-        public static void Work(string name, int load)
+        public static void Job(
+            string name,
+            (int setup, int work) times,
+            Barrier barrier)
         {
-            Tools.Log(name, "Starting work...");
+            Tools.Log(name, "Starting Job...");
+            FakeWork(times.setup);
 
-            Thread.Sleep(
-                TimeSpan.FromMilliseconds(load));
+            Tools.Log(name, "Barrier reached.");
+            barrier.SignalAndWait();
 
-            Tools.Log(name, "Work done.");
+            Tools.Log(name, "Executing work...");
+            FakeWork(times.work);
+
+            Tools.Log(name, "Everything done.");
         }
+
+        private static void FakeWork(
+            int executionMilliseconds)
+            => Thread.Sleep(
+                TimeSpan.FromMilliseconds(
+                    executionMilliseconds));
     }
 
     public class Program
@@ -32,6 +45,8 @@ namespace JustProblems.SystemWideBarrier
 
         public static void Main(string[] args)
         {
+            var rng = new Random(RNG_SEED);
+
             var jobsNames = new[]{
                 "pierwsza",
                 "second",
@@ -41,14 +56,22 @@ namespace JustProblems.SystemWideBarrier
                 "п'ятий"
             };
 
-            var rng = new Random(RNG_SEED);
-            var jobs = new List<Task>();
+            var jobsCount = jobsNames.Length;
 
-            foreach (var jn in jobsNames)
+            var barrier = new Barrier(jobsCount,
+                postPhaseAction: _ => Tools
+                    .Log("MAIN", "Barrier breached!"));
+
+            var jobs = new List<Task>(jobsCount);
+            foreach (var jobName in jobsNames)
             {
-                var load = rng.Next(333, 777);
+                var setup = rng.Next(111, 444);
+                var work = rng.Next(333, 777);
+
                 jobs.Add(Task.Run(
-                    () => Worker.Work(jn, load)));
+                    () => Worker.Job(jobName,
+                        (setup, work),
+                        barrier)));
             }
 
             Task.WaitAll(jobs.ToArray());
